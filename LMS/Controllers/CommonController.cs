@@ -105,8 +105,25 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetClassOfferings(string subject, int number)
         {
-      
-          return Json(null);
+
+            var result =
+                  from c in db.Classes
+                  join crs in db.Courses on c.CatalogId equals crs.CatalogId
+                  join d in db.Departments on crs.DeptId equals d.DeptId
+                  join u in db.Users on c.ProfessorId equals u.UserId
+                  where d.Abbrev == subject && Convert.ToInt32(crs.Number) == number
+                  select new
+                  {
+                      season = c.Semester,
+                      year = 2019, //TODO: add year to the Classes schema and un-hardcode this.
+                      location = c.Location,
+                      start = c.StartTime,
+                      end = c.EndTime,
+                      fname = u.FirstName,
+                      lname = u.LastName
+                  };
+
+            return Json(result);
         }
 
         /// <summary>

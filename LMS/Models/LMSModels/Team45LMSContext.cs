@@ -132,7 +132,7 @@ namespace LMS.Models.LMSModels
                     .IsRequired()
                     .HasColumnType("char(5)");
 
-                entity.Property(e => e.EndTime).HasColumnType("datetime");
+                entity.Property(e => e.EndTime).HasColumnType("time");
 
                 entity.Property(e => e.Location)
                     .HasColumnName("location")
@@ -142,7 +142,7 @@ namespace LMS.Models.LMSModels
 
                 entity.Property(e => e.Semester).HasColumnType("varchar(15)");
 
-                entity.Property(e => e.StartTime).HasColumnType("datetime");
+                entity.Property(e => e.StartTime).HasColumnType("time");
 
                 entity.HasOne(d => d.Catalog)
                     .WithMany(p => p.Classes)

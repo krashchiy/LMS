@@ -162,7 +162,7 @@ namespace LMS.Controllers
         /// within the start-end range in the same semester, or if there is already
         /// a Class offering of the same Course in the same Semester,
         /// true otherwise.</returns>
-        public IActionResult CreateClass(string subject, int number, string season, int year, DateTime start, DateTime end, string location, string instructor)
+        public IActionResult CreateClass(string subject, int number, string season, int year, TimeSpan start, TimeSpan end, string location, string instructor)
         {
             var tableCount = db.Classes.Count();
 
@@ -181,6 +181,7 @@ namespace LMS.Controllers
                     StartTime = start,
                     EndTime = end,
                     Location = location
+                    
                 };
 
                 db.Classes.Add(firstClass);
