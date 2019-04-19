@@ -12,10 +12,6 @@ namespace LMS.Controllers
     {
 
         /*******Begin code to modify********/
-
-        // TODO: Uncomment and change 'X' after you have scaffoled
-
-
         protected Team45LMSContext db;
 
         public CommonController()
@@ -30,9 +26,6 @@ namespace LMS.Controllers
          *          The "right" way is through Dependency Injection via the constructor 
          *          (look this up if interested).
         */
-
-        // TODO: Uncomment and change 'X' after you have scaffoled
-
         public void UseLMSContext(Team45LMSContext ctx)
         {
             db = ctx;
@@ -58,15 +51,7 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetDepartments()
         {
-            // TODO: Do not return this hard-coded array.
-
             var result = from d in db.Departments select new { name = d.Name, subject = d.Abbrev };
-            //var result = from t in cont.Titles 
-            //    join i in db.Inventory on t.Isbn equals i.Isbn 
-            //    join c in cont.CheckedOut on i.Serial equals c.Serial 
-            //    where c.CardNum == Convert.ToUInt32(card)
-            //    select new {t.Title, t.Author, i.Serial};          
-
             return Json(result.ToArray());
         }
 
@@ -85,8 +70,19 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetCatalog()
         {
-
-            return Json(null);
+            var result = from d in db.Departments
+                join cr in db.Courses on d.DeptId equals cr.DeptId
+                select new
+                {
+                    subject = d.Abbrev,
+                    dname = d.Name,
+                    courses = new
+                    {
+                        number = cr.Number,
+                        cname = cr.Name
+                    }
+                };
+            return Json(result.ToArray());
         }
 
         /// <summary>
@@ -140,8 +136,15 @@ namespace LMS.Controllers
         /// <returns>The assignment contents</returns>
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
         {
-
-            return Content("");
+            var result = from a in db.Assignments
+                join ac in db.AssignmentCategories on a.AsgCatId equals ac.AsgCatId
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season 
+                      && c.Year == year && ac.Name == category && a.Name == asgname
+                select a.Contents;
+            return Content(result.FirstOrDefault());
         }
 
 
@@ -161,8 +164,19 @@ namespace LMS.Controllers
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
         {
+            //Make sure to get the latest submission in case there are many
+            var result = from sm in db.Submissions
+                join a in db.Assignments on sm.AsgId equals a.AsgId
+                join ac in db.AssignmentCategories on a.AsgCatId equals ac.AsgCatId
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season 
+                      && c.Year == year && ac.Name == category && a.Name == asgname && sm.StudentId == uid
+                orderby sm.TimeSubmitted descending 
+                select sm.Contents;
 
-            return Content("");
+            return Content(result.FirstOrDefault());
         }
 
 
