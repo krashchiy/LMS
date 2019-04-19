@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Controllers
 {
-  public class CommonController : Controller
-  {
+    public class CommonController : Controller
+    {
 
         /*******Begin code to modify********/
 
@@ -58,16 +58,16 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetDepartments()
         {
-          // TODO: Do not return this hard-coded array.
-          
-            var result = from d in db.Departments select new {name = d.Name, subject = d.Abbrev };
+            // TODO: Do not return this hard-coded array.
+
+            var result = from d in db.Departments select new { name = d.Name, subject = d.Abbrev };
             //var result = from t in cont.Titles 
             //    join i in db.Inventory on t.Isbn equals i.Isbn 
             //    join c in cont.CheckedOut on i.Serial equals c.Serial 
             //    where c.CardNum == Convert.ToUInt32(card)
             //    select new {t.Title, t.Author, i.Serial};          
 
-          return Json(result.ToArray());
+            return Json(result.ToArray());
         }
 
 
@@ -84,9 +84,9 @@ namespace LMS.Controllers
         /// </summary>
         /// <returns>The JSON array</returns>
         public IActionResult GetCatalog()
-        {     
+        {
 
-          return Json(null);
+            return Json(null);
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace LMS.Controllers
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
         {
 
-          return Content("");
+            return Content("");
         }
 
 
@@ -161,8 +161,8 @@ namespace LMS.Controllers
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
         {
-      
-          return Content("");
+
+            return Content("");
         }
 
 
@@ -184,12 +184,74 @@ namespace LMS.Controllers
         /// </returns>
         public IActionResult GetUser(string uid)
         {
-     
-          return Json(new { success = false } );
+            //check to see if the user id exists.  If not, return no success.
+            var id = (from u in db.Users where u.UserId == uid select u.UserId).FirstOrDefault();
+            if (string.IsNullOrEmpty(id))
+                return Json(new { success = false });
+
+            //Check if the Uid belongs to student, if so, return student info.
+            var proposedStudent = (from s in db.Students where s.StudentId == uid select s.StudentId).FirstOrDefault();
+            if (!string.IsNullOrEmpty(proposedStudent))
+            {
+
+                var studentResult =
+                      from u in db.Users
+                      join s in db.Students on u.UserId equals s.StudentId
+                      join d in db.Departments on s.DeptId equals d.DeptId
+                      where u.UserId == uid
+                      select new
+                      {
+                          fname = u.FirstName,
+                          lname = u.LastName,
+                          uid = u.UserId,
+                          department = d.Name
+                      };
+
+                return Json(studentResult);
+            }
+
+            //check to see if uID belongs to Professor, if so, return professor info.
+            var proposedProfessor = (from p in db.Professors where p.ProfessorId == uid select p.ProfessorId).FirstOrDefault();
+            if (!string.IsNullOrEmpty(proposedProfessor))
+            {
+
+                var professorResult =
+                      from u in db.Users
+                      join p in db.Professors on u.UserId equals p.ProfessorId
+                      join d in db.Departments on p.DeptId equals d.DeptId
+                      where u.UserId == uid
+                      select new
+                      {
+                          fname = u.FirstName,
+                          lname = u.LastName,
+                          uid = u.UserId,
+                          department = d.Name
+                      };
+
+                return Json(professorResult);
+            }
+
+            //check to see if uID belongs to Professor, if so, return professor info.
+            var proposedAdmin = (from a in db.Admins where a.AdminId == uid select a.AdminId).FirstOrDefault();
+            if (!string.IsNullOrEmpty(proposedAdmin))
+            {
+
+                var adminResult =
+                      from u in db.Users
+                      join a in db.Admins on u.UserId equals a.AdminId
+                      where u.UserId == uid
+                      select new
+                      {
+                          fname = u.FirstName,
+                          lname = u.LastName,
+                          uid = u.UserId,
+                      };
+
+                return Json(adminResult);
+            }
+            return Json(new { success = false });
         }
-
-
         /*******End code to modify********/
 
-      }
+    }
 }
