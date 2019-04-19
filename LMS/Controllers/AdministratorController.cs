@@ -180,7 +180,8 @@ namespace LMS.Controllers
                     Semester = season,
                     StartTime = start,
                     EndTime = end,
-                    Location = location
+                    Location = location,
+                    Year = year
                     
                 };
 
@@ -225,7 +226,8 @@ namespace LMS.Controllers
                 Semester = season,
                 StartTime = start,
                 EndTime = end,
-                Location = location
+                Location = location,
+                Year = year
             };
 
             db.Classes.Add(newClass);
