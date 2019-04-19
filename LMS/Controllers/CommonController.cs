@@ -19,7 +19,6 @@ namespace LMS.Controllers
             db = new Team45LMSContext();
         }
 
-
         /*
          * WARNING: This is the quick and easy way to make the controller
          *          use a different LibraryContext - good enough for our purposes.
@@ -54,8 +53,6 @@ namespace LMS.Controllers
             var result = from d in db.Departments select new { name = d.Name, subject = d.Abbrev };
             return Json(result.ToArray());
         }
-
-
 
         /// <summary>
         /// Returns a JSON array representing the course catalog.
