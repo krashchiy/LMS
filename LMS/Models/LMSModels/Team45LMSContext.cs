@@ -144,6 +144,9 @@ namespace LMS.Models.LMSModels
 
                 entity.Property(e => e.StartTime).HasColumnType("time");
 
+                entity.Property(e => e.Year).HasColumnType("int(4)");
+
+
                 entity.HasOne(d => d.Catalog)
                     .WithMany(p => p.Classes)
                     .HasForeignKey(d => d.CatalogId)

@@ -115,7 +115,7 @@ namespace LMS.Controllers
                   select new
                   {
                       season = c.Semester,
-                      year = 2019, //TODO: add year to the Classes schema and un-hardcode this.
+                      year = c.Year,
                       location = c.Location,
                       start = c.StartTime,
                       end = c.EndTime,

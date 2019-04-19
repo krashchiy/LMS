@@ -18,6 +18,7 @@ namespace LMS.Models.LMSModels
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public string Location { get; set; }
+        public string Year { get; set; }
 
         public virtual Courses Catalog { get; set; }
         public virtual ICollection<AssignmentCategories> AssignmentCategories { get; set; }
