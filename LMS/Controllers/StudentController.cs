@@ -259,7 +259,7 @@ namespace LMS.Controllers
                 List<double> scores = new List<double>();
                 foreach (var grade in grades)
                 {
-                    scores.Add(Utils.GradeToScore(grade));
+                    scores.Add(Utils.GradeToGPA(grade));
                 }
 
                 double GPA = scores.Average();

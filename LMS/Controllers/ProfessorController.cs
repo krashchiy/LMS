@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Controllers
 {
@@ -157,10 +159,10 @@ namespace LMS.Controllers
                     aname = asg.Name,
                     cname = a.Name,
                     due = asg.DueDate,
-                    //submissions = TODO: get the count of assignments, OR do we need to keep track of if a student submits twice?
+                    submissions = db.Submissions.Count(sb => sb.AsgId == asg.AsgId)
                 };
 
-            return Json(null);
+            return Json(result.ToArray());
         }
 
 
@@ -205,10 +207,38 @@ namespace LMS.Controllers
         /// <param name="category">The new category name</param>
         /// <param name="catweight">The new category weight</param>
         /// <returns>A JSON object containing {success = true/false} </returns>
-        public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category, int catweight)
+        public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category,
+            int catweight)
         {
+            bool isNew = false;
+            var result = from ac in db.AssignmentCategories
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season && c.Year == year
+                select ac;
 
-            return Json(new { success = false });
+            if (!result.Any())
+            {
+                int classId =
+                    (from c in db.Classes
+                        join crs in db.Courses on c.CatalogId equals crs.CatalogId
+                        join d in db.Departments on crs.DeptId equals d.DeptId
+                        where d.Abbrev == subject && Convert.ToInt16(crs.Number) == num && c.Semester == season && c.Year == year
+                        select c.ClassId).FirstOrDefault();
+                var asgCat = new AssignmentCategories
+                {
+                    ClassId = classId,
+                    GradeWeight = Convert.ToByte(catweight),
+                    Name = category
+                };
+
+                db.AssignmentCategories.Add(asgCat);
+                db.SaveChanges();
+                isNew = true;
+            }
+        
+            return Json(new { success = isNew });
         }
 
         /// <summary>
@@ -226,8 +256,50 @@ namespace LMS.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult CreateAssignment(string subject, int num, string season, int year, string category, string asgname, int asgpoints, DateTime asgdue, string asgcontents)
         {
+            bool madeIt = false;
+            var assCatId = (from ac in db.AssignmentCategories
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season 
+                      && c.Year == year && ac.Name == category
+                select ac.AsgCatId).FirstOrDefault();
 
-            return Json(new { success = false });
+            
+            if (assCatId > 0 && !db.Assignments.Any(a => a.AsgCatId == assCatId && a.Name == asgname))
+            {
+                var assignment = new Assignments
+                {
+                    AsgCatId = assCatId,
+                    Contents = asgcontents,
+                    DueDate = asgdue,
+                    MaxPoints = asgpoints,
+                    Name = asgname
+                };
+
+                db.Assignments.Add(assignment);
+                db.SaveChanges();
+
+                int classId =
+                    (from c in db.Classes
+                        join crs in db.Courses on c.CatalogId equals crs.CatalogId
+                        join d in db.Departments on crs.DeptId equals d.DeptId
+                        where d.Abbrev == subject && Convert.ToInt16(crs.Number) == num && c.Semester == season && c.Year == year
+                        select c.ClassId).FirstOrDefault();
+
+                //Get all students in this class and update their grades accordingly
+                if (db.Enrollment.Any(e => e.ClassId == classId))
+                {
+                    List<string> studIds = db.Enrollment.Where(e => e.ClassId == classId).Select(e => e.StudentId).ToList();
+                    foreach (var uid in studIds)
+                    {
+                        UpdateStudentGrade(uid, classId);
+                    }
+                }
+                madeIt = true;
+            }
+
+            return Json(new { success = madeIt });
         }
 
 
@@ -250,8 +322,24 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetSubmissionsToAssignment(string subject, int num, string season, int year, string category, string asgname)
         {
-
-            return Json(null);
+            var result = from sm in db.Submissions
+                join a in db.Assignments on sm.AsgId equals a.AsgId
+                join ac in db.AssignmentCategories on a.AsgCatId equals ac.AsgCatId
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                join u in db.Users on sm.StudentId equals u.UserId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season
+                      && c.Year == year && ac.Name == category && a.Name == asgname
+                select new
+                {
+                    fname = u.FirstName,
+                    lname = u.LastName,
+                    uid = sm.StudentId,
+                    time = sm.TimeSubmitted,
+                    score = sm.Score
+                };
+            return Json(result.ToArray());
         }
 
 
@@ -269,8 +357,37 @@ namespace LMS.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult GradeSubmission(string subject, int num, string season, int year, string category, string asgname, string uid, int score)
         {
+            bool foundIt = false;
+            var submission = from sm in db.Submissions
+                join a in db.Assignments on sm.AsgId equals a.AsgId
+                join ac in db.AssignmentCategories on a.AsgCatId equals ac.AsgCatId
+                join c in db.Classes on ac.ClassId equals c.ClassId
+                join cr in db.Courses on c.CatalogId equals cr.CatalogId
+                join d in db.Departments on cr.DeptId equals d.DeptId
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season
+                      && c.Year == year && ac.Name == category && a.Name == asgname && sm.StudentId == uid
+                select sm;
+            if (submission.Any())
+            {
+                //Grade the latest submission
+                var latestSub = submission.OrderByDescending(sb => sb.TimeSubmitted).FirstOrDefault();
+                latestSub.Score = score;
+                db.Entry(latestSub).State = EntityState.Modified;
+                db.SaveChanges();
 
-            return Json(new { success = true });
+                int classId =
+                    (from c in db.Classes
+                        join crs in db.Courses on c.CatalogId equals crs.CatalogId
+                        join d in db.Departments on crs.DeptId equals d.DeptId
+                        where d.Abbrev == subject && Convert.ToInt16(crs.Number) == num && c.Semester == season && c.Year == year
+                        select c.ClassId).FirstOrDefault();
+
+                //Update student's grade for the class
+                UpdateStudentGrade(uid, classId);
+
+                foundIt = true;
+            }
+            return Json(new { success = foundIt });
         }
 
 
@@ -287,10 +404,71 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetMyClasses(string uid)
         {
+            var result =
+                from c in db.Classes
+                join crs in db.Courses on c.CatalogId equals crs.CatalogId
+                join d in db.Departments on crs.DeptId equals d.DeptId
+                join p in db.Professors on c.ProfessorId equals p.ProfessorId
+                where c.ProfessorId == uid
+                select new
+                {
+                    subject = d.Abbrev,
+                    number = crs.Number,
+                    name = crs.Name,
+                    season = c.Semester,
+                    year = c.Year
+                };
 
-            return Json(null);
+            return Json(result.ToArray());
         }
 
+        private void UpdateStudentGrade(string uid, int classId)
+        {
+            //Get only latest submissions for each assignment id for a student
+                var subs = from sm in db.Submissions
+                    where sm.StudentId == uid
+                    group sm by sm.AsgId
+                    into g
+                    select new
+                    {
+                        subId = (from tb in g select tb.SubmissionId).Max()
+                    };
+                var subIds = subs.Select(s => s.subId).ToList();
+
+                var studentSubs = from sm in db.Submissions
+                    join a in db.Assignments on sm.AsgId equals a.AsgId
+                    where subIds.Contains(sm.SubmissionId)
+                    group new {a, sm} by a.AsgCatId
+                    into g
+                    join ac in db.AssignmentCategories on g.Key equals ac.AsgCatId
+                    select new
+                    {
+                        weight = ac.GradeWeight,
+                        earnedTotal = (from tb in g select tb.sm.Score ?? 0).Sum(),
+                        maxTotal = (from tb in g select tb.a.MaxPoints).Sum()
+                    };
+
+                double totalScore = 0;
+                double weightsTotal = studentSubs.Select(x => Convert.ToDouble(x.weight)).Sum();
+                foreach (var catSub in studentSubs)
+                {
+                    double catGrade = Math.Round(Convert.ToDouble(catSub.earnedTotal / catSub.maxTotal), 2);
+                    double catScore = Convert.ToDouble(catGrade * catSub.weight);
+                    totalScore += catScore;
+                }
+
+                double scaleFactor = Math.Round(100 / weightsTotal, 2);
+                totalScore = Math.Round(totalScore * scaleFactor, 2);
+                if (totalScore > 100)
+                {
+                    totalScore = 100;
+                }
+
+                string grade = Utils.ScoreToGrade(totalScore);
+                
+                db.Enrollment.FirstOrDefault(e => e.StudentId == uid && e.ClassId == classId).Grade=grade;
+                db.SaveChanges();
+        }
 
         /*******End code to modify********/
 

@@ -486,7 +486,7 @@ namespace LMS.Controllers
         public string CreateNewUser(string fName, string lName, DateTime DOB, string SubjectAbbrev, string role)
         {
             var current = db.Users.Count();
-            string userId = "u0000001";
+            string userId;
             bool userExists = false;
             if (current == 0)
             {

@@ -3,7 +3,7 @@ namespace LMS
 {
     public class Utils
     {
-        public static double GradeToScore(string grade)
+        public static double GradeToGPA(string grade)
         {
             double score;
             switch (grade)
@@ -47,6 +47,61 @@ namespace LMS
             }
 
             return score;
+        }
+
+        public static string ScoreToGrade(double score)
+        {
+            string grade;
+            if (93 <= score && score <= 100)
+            {
+                grade = "A";
+            }
+            else if (90 <= score && score < 93)
+            {
+                grade =  "A-";
+            }
+            else if (87 <= score && score < 90)
+            {
+                grade =  "B+";
+            }
+            else if (83 <= score && score < 87)
+            {
+                grade =  "B";
+            }
+            else if (80 <= score && score < 83)
+            {
+                grade =  "B-";
+            }
+            else if (77 <= score && score < 80)
+            {
+                grade =  "C+";
+            }
+            else if (73 <= score && score < 77)
+            {
+                grade =  "C";
+            }
+            else if (70 <= score && score < 73)
+            {
+                grade =  "C-";
+            }
+            else if (67 <= score && score < 70)
+            {
+                grade =  "D+";
+            }
+            else if (63 <= score && score < 67)
+            {
+                grade =  "D";
+            }
+            else if (60 <= score && score < 63)
+            {
+                grade =  "D-";
+            }
+            else
+            {
+                grade = "E";
+            }
+
+            return grade;
         }
     }
 }

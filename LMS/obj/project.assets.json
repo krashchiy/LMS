@@ -12545,11 +12545,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\LMS_handout\\LMS_handout\\LMS\\LMS.csproj",
+      "projectUniqueName": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\GitProject\\LMS\\LMS.csproj",
       "projectName": "LMS",
-      "projectPath": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\LMS_handout\\LMS_handout\\LMS\\LMS.csproj",
+      "projectPath": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\GitProject\\LMS\\LMS.csproj",
       "packagesPath": "C:\\Users\\igor.ivanov\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\LMS_handout\\LMS_handout\\LMS\\obj\\",
+      "outputPath": "C:\\Users\\igor.ivanov\\Desktop\\Classes\\CS5530\\Project\\GitProject\\LMS\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
