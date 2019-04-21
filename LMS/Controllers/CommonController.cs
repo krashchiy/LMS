@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -175,7 +176,12 @@ namespace LMS.Controllers
                 orderby sm.TimeSubmitted descending 
                 select sm.Contents;
 
-            return Content(result.FirstOrDefault());
+            if (result.Any())
+            {
+                return Content(result.FirstOrDefault());
+            }
+            
+            return Content("");
         }
 
 

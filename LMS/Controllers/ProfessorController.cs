@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -153,7 +155,7 @@ namespace LMS.Controllers
                 join c in db.Classes on crs.CatalogId equals c.CatalogId
                 join a in db.AssignmentCategories on c.ClassId equals a.ClassId
                 join asg in db.Assignments on a.AsgCatId equals asg.AsgCatId
-                where d.Abbrev == subject && Convert.ToInt16(crs.Number) == num && c.Semester == season && c.Year == year && a.Name == category
+                where d.Abbrev == subject && Convert.ToInt16(crs.Number) == num && c.Semester == season && c.Year == year
                 select new
                 {
                     aname = asg.Name,
@@ -161,6 +163,11 @@ namespace LMS.Controllers
                     due = asg.DueDate,
                     submissions = db.Submissions.Count(sb => sb.AsgId == asg.AsgId)
                 };
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                result = result.Where(x => x.aname == category);
+            }
 
             return Json(result.ToArray());
         }
@@ -268,10 +275,12 @@ namespace LMS.Controllers
             
             if (assCatId > 0 && !db.Assignments.Any(a => a.AsgCatId == assCatId && a.Name == asgname))
             {
+                var newContents = Regex.Replace(asgcontents, @"<[^>]*>", String.Empty);
+                newContents = newContents.Replace("\n", "<br/>");
                 var assignment = new Assignments
                 {
                     AsgCatId = assCatId,
-                    Contents = asgcontents,
+                    Contents = newContents,
                     DueDate = asgdue,
                     MaxPoints = asgpoints,
                     Name = asgname
@@ -425,49 +434,52 @@ namespace LMS.Controllers
         private void UpdateStudentGrade(string uid, int classId)
         {
             //Get only latest submissions for each assignment id for a student
-                var subs = from sm in db.Submissions
-                    where sm.StudentId == uid
-                    group sm by sm.AsgId
-                    into g
-                    select new
-                    {
-                        subId = (from tb in g select tb.SubmissionId).Max()
-                    };
-                var subIds = subs.Select(s => s.subId).ToList();
-
-                var studentSubs = from sm in db.Submissions
-                    join a in db.Assignments on sm.AsgId equals a.AsgId
-                    where subIds.Contains(sm.SubmissionId)
-                    group new {a, sm} by a.AsgCatId
-                    into g
-                    join ac in db.AssignmentCategories on g.Key equals ac.AsgCatId
-                    select new
-                    {
-                        weight = ac.GradeWeight,
-                        earnedTotal = (from tb in g select tb.sm.Score ?? 0).Sum(),
-                        maxTotal = (from tb in g select tb.a.MaxPoints).Sum()
-                    };
-
-                double totalScore = 0;
-                double weightsTotal = studentSubs.Select(x => Convert.ToDouble(x.weight)).Sum();
-                foreach (var catSub in studentSubs)
+            var subs = from sm in db.Submissions
+                where sm.StudentId == uid
+                group sm by sm.AsgId
+                into g
+                select new
                 {
-                    double catGrade = Math.Round(Convert.ToDouble(catSub.earnedTotal / catSub.maxTotal), 2);
-                    double catScore = Convert.ToDouble(catGrade * catSub.weight);
-                    totalScore += catScore;
-                }
+                    subId = (from tb in g select tb.SubmissionId).Max()
+                };
+            var subIds = subs.Select(s => s.subId).ToList();
 
-                double scaleFactor = Math.Round(100 / weightsTotal, 2);
-                totalScore = Math.Round(totalScore * scaleFactor, 2);
-                if (totalScore > 100)
+            var studentSubs = from sm in db.Submissions
+                join a in db.Assignments on sm.AsgId equals a.AsgId
+                where subIds.Contains(sm.SubmissionId)
+                group new {a, sm} by a.AsgCatId
+                into g
+                join ac in db.AssignmentCategories on g.Key equals ac.AsgCatId
+                select new
                 {
-                    totalScore = 100;
-                }
+                    weight = ac.GradeWeight,
+                    earnedTotal = (from tb in g select tb.sm.Score ?? 0).Sum(),
+                    maxTotal = (from tb in g select tb.a.MaxPoints).Sum()
+                };
 
-                string grade = Utils.ScoreToGrade(totalScore);
-                
-                db.Enrollment.FirstOrDefault(e => e.StudentId == uid && e.ClassId == classId).Grade=grade;
-                db.SaveChanges();
+            double totalScore = 0;
+            double classWtTotal = db.AssignmentCategories.Where(ct => ct.ClassId == classId).Select(x => Convert.ToDouble(x.GradeWeight)).Sum();
+            
+            foreach (var catSub in studentSubs)
+            {
+                double earned = Convert.ToDouble(catSub.earnedTotal);
+                double ttlMax = Convert.ToDouble(catSub.maxTotal);
+                double catGrade = Math.Round(earned/ttlMax, 2);
+                double catScore = Convert.ToDouble(catGrade * catSub.weight);
+                totalScore += catScore;
+            }
+
+            double scaleFactor = Math.Round(100 / classWtTotal, 2);
+            totalScore = Math.Round(totalScore * scaleFactor, 2);
+            if (totalScore > 100)
+            {
+                totalScore = 100;
+            }
+
+            string grade = Utils.ScoreToGrade(totalScore);
+            
+            db.Enrollment.FirstOrDefault(e => e.StudentId == uid && e.ClassId == classId).Grade=grade;
+            db.SaveChanges();
         }
 
         /*******End code to modify********/

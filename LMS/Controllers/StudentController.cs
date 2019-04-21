@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
+using System.Web;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -115,7 +118,7 @@ namespace LMS.Controllers
                     aname = a.Name,
                     cname = ac.Name,
                     due = a.DueDate,
-                    score = db.Submissions.OrderByDescending(x => x.TimeSubmitted).FirstOrDefault(s => s.AsgId == a.AsgId && s.StudentId == uid)
+                    score = db.Submissions.OrderByDescending(x => x.TimeSubmitted).FirstOrDefault(s => s.AsgId == a.AsgId && s.StudentId == uid).Score
                 };
             return Json(result.ToArray());
         }
@@ -158,6 +161,9 @@ namespace LMS.Controllers
             }
             else
             {
+                //Remove html tags and add html line break
+                contents = Regex.Replace(contents, @"<[^>]*>", String.Empty);
+                contents = contents.Replace("\n", "<br/>");
                 if (db.Submissions.Any(sb => sb.StudentId == uid && sb.AsgId == assId))
                 {
                     Submissions current = db.Submissions.FirstOrDefault(sb => sb.StudentId == uid && sb.AsgId == assId);
