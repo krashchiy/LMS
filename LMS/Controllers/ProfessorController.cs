@@ -166,7 +166,7 @@ namespace LMS.Controllers
 
             if (!string.IsNullOrEmpty(category))
             {
-                result = result.Where(x => x.aname == category);
+                result = result.Where(x => x.cname == category);
             }
 
             return Json(result.ToArray());
