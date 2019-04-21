@@ -215,7 +215,7 @@ namespace LMS.Controllers
                 join c in db.Classes on ac.ClassId equals c.ClassId
                 join cr in db.Courses on c.CatalogId equals cr.CatalogId
                 join d in db.Departments on cr.DeptId equals d.DeptId
-                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season && c.Year == year
+                where d.Abbrev == subject && Convert.ToInt16(cr.Number) == num && c.Semester == season && c.Year == year && ac.Name == category
                 select ac;
 
             if (!result.Any())

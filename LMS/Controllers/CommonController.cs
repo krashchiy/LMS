@@ -67,17 +67,19 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetCatalog()
         {
+            //var currentCourses = from cr in db.Courses
             var result = from d in db.Departments
-                join cr in db.Courses on d.DeptId equals cr.DeptId
                 select new
                 {
                     subject = d.Abbrev,
                     dname = d.Name,
-                    courses = new
-                    {
-                        number = cr.Number,
-                        cname = cr.Name
-                    }
+                    courses = from cr in db.Courses
+                        where cr.DeptId == d.DeptId
+                        select new
+                        {
+                            number = cr.Number,
+                            cname = cr.Name
+                        }
                 };
             return Json(result.ToArray());
         }
@@ -206,7 +208,7 @@ namespace LMS.Controllers
             {
 
                 var studentResult =
-                      from u in db.Users
+                      (from u in db.Users
                       join s in db.Students on u.UserId equals s.StudentId
                       join d in db.Departments on s.DeptId equals d.DeptId
                       where u.UserId == uid
@@ -216,7 +218,7 @@ namespace LMS.Controllers
                           lname = u.LastName,
                           uid = u.UserId,
                           department = d.Name
-                      };
+                      }).FirstOrDefault();
 
                 return Json(studentResult);
             }
@@ -227,7 +229,7 @@ namespace LMS.Controllers
             {
 
                 var professorResult =
-                      from u in db.Users
+                      (from u in db.Users
                       join p in db.Professors on u.UserId equals p.ProfessorId
                       join d in db.Departments on p.DeptId equals d.DeptId
                       where u.UserId == uid
@@ -237,7 +239,7 @@ namespace LMS.Controllers
                           lname = u.LastName,
                           uid = u.UserId,
                           department = d.Name
-                      };
+                      }).FirstOrDefault();
 
                 return Json(professorResult);
             }
@@ -248,7 +250,7 @@ namespace LMS.Controllers
             {
 
                 var adminResult =
-                      from u in db.Users
+                      (from u in db.Users
                       join a in db.Admins on u.UserId equals a.AdminId
                       where u.UserId == uid
                       select new
@@ -256,7 +258,7 @@ namespace LMS.Controllers
                           fname = u.FirstName,
                           lname = u.LastName,
                           uid = u.UserId,
-                      };
+                      }).FirstOrDefault();
 
                 return Json(adminResult);
             }
